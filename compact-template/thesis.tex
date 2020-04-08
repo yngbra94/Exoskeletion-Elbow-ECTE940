@@ -1,0 +1,191 @@
+%
+% ecte457.sty. A very simple style for ECTE457 Thesis reports.
+% The process assumed will be tex to pdf.
+% 
+% Updated to a squeezed up version in 2012.
+%
+\documentclass[12pt,a4paper,fleqn]{report}
+\usepackage{ecte45x}
+%
+% mmmm, natbib. tastier and better than bibtex or biblatex
+\usepackage[sort&compress,square,numbers]{natbib}
+%
+% for the inclusion of eps and ps graphics
+\usepackage{graphicx}
+%
+% for changing margins for one page
+\usepackage{chngpage}
+%
+\usepackage{setspace}
+%
+% setup the page margins
+\usepackage[left=35mm,right=25mm,top=25mm,bottom=25mm]{geometry}
+%
+% for tables that need to run over several pages
+\usepackage{longtable}
+%
+% gives you more control of the enumeration lists
+\usepackage{enumerate}
+\usepackage{paralist}
+%
+% a better caption for figure and tables. This package will put the figure
+% name and number in bold.
+\usepackage[labelfont=bf,justification=centering]{caption}
+%
+% for the LaTeX symbol
+\usepackage{latexsym}
+%
+% for table cells that need to span multiple rows
+\usepackage{multirow}
+%
+% better control over equation arrays
+\usepackage{array}
+%
+% formats URL nicely, especially in the bibliography
+\usepackage{url}
+%
+% if you need a page rotated
+\usepackage{lscape}
+%
+% formats dates and times nicely
+\usepackage{datetime}
+
+% Change font size. Used to literature planer. 
+\usepackage{sectsty}
+\sectionfont{\fontsize{12}{16}\selectfont}
+
+% Makes it able to write text in different colors. 
+% Ex; \textcolor{blue}{This is a sample text in blue.}
+\usepackage{xcolor}
+
+% Makes it able to comment sections. 
+\usepackage{verbatim}
+
+
+%
+% place the chapter title and page number in the header. no footers.
+\usepackage{fancyhdr}
+%
+% titlesec is used to squeeze up some space
+\usepackage[compact]{titlesec}
+\titleformat{\chapter}[display]{\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{0pt}{\Huge}
+\titlespacing{\chapter}{0pt}{*-10}{*0}
+\titlespacing{\section}{0pt}{*-1}{*-1}
+\titlespacing{\subsection}{0pt}{*-1}{*-1}
+\titlespacing{\subsubsection}{0pt}{*-1}{*-1}
+%
+% squeeze some more space around equations
+\makeatletter
+\g@addto@macro\normalsize{\setlength\abovedisplayskip{0pt}}
+\g@addto@macro\normalsize{\setlength\belowdisplayskip{0pt}}
+\g@addto@macro\normalsize{\setlength\abovedisplayshortskip{0pt}}
+\g@addto@macro\normalsize{\setlength\belowdisplayshortskip{0pt}}
+\makeatother
+%
+% squeeze some bibliography space
+\setlength{\bibsep}{0.0pt}
+\setlength{\bibhang}{0em}
+\def\bibfont{\footnotesize}
+%
+% nicer looking tables
+\setlength\extrarowheight{2pt}
+%
+% you need to place your details here so the title page and statement of
+% originality are correctly created.
+%
+\degreetitle{Bachelor of Engineering (Electrical), Bachelor of Mathematics}
+\submitdate{June, 2013}
+% Don't forget the proper title for your supervisor.
+\supervisor{Dr John Smith}
+\title{The Title of My Thesis}
+\author{Joe E. Blogs}
+\studentid{1234567}
+%
+% establish the fancy headers to be used throughout the document
+\rhead{\thepage}
+\lhead{\nouppercase{\leftmark}}
+\rfoot{}
+\cfoot{}
+\lfoot{}
+%
+% Begin the document.
+%
+\begin{document}
+%
+% Change the filenames to whatever you have chosen for your project.
+%
+% The "beforeabstract" macro essentially creates the title page from the data
+% you include in the preamble of this document.
+%
+\beforeabstract
+%
+% The first content will be the abstract.
+%
+
+
+\include{abstract}
+
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+%
+% Any acknowledgements you might wish to include. Acknowledgements should use
+% the "notocsection" environment (so it doesn't get included in the table of
+% contents). See acknowledgements.tex.
+%
+\include{acknowledgements}
+%
+% The "afterabstract" macro creates the statement of originality, table of
+% contents, list of tables and list of figures.
+%
+\afterabstract
+%
+% Symbols and abbreviations go after the contents, list of figures and list
+% of tables. The glossary should use the "tocssection" environment (so it
+% appears in the table of contents). See glossary.tex.
+
+
+\include{glossary}
+
+
+
+%
+% The table that describes your list of changes from ECTE451 to ECTE458. You
+% need only include this section when submitting your ECTE458 report. If this
+% is your ECTE451 report, comment out (%) or remove the following \include.
+%
+%%\include{changes}
+%
+\pagenumbering{arabic}
+\pagestyle{fancy}
+%
+% Now go through and input the bulk of the thesis.
+%
+\include{compact-template/Chapters/chap1_Introducion}
+\include{compact-template/Chapters/chap2}
+\include{compact-template/Chapters/chap3_ToResearch}
+\include{compact-template/Chapters/DesignNotes}
+
+
+%
+% Use the ieee bibliography style. The bibliography source (database,) in this
+% case, is in the file thesis.bib, but of course you can use your own
+% filename. 
+%
+\bibliographystyle{unsrtnat}
+\addcontentsline{toc}{chapter}{References}
+\bibliography{thesis}
+\label{refs}
+%
+% Include the appendices.
+%
+\appendix
+\input{compact-template/Appendix/LitReview}
+\input{compact-template/Appendix/appendix1}
+\input{compact-template/Appendix/appendix2}
+%%
+%% End the document
+%%
+\end{document}
