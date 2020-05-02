@@ -1,0 +1,11 @@
+{
+  "additionalFiles": "..,..",
+  "builtInLibrariesFolders": "C:\\Program Files (x86)\\Arduino\\libraries",
+  "builtInToolsFolders": "C:\\Program Files (x86)\\Arduino\\tools-builder,C:\\Program Files (x86)\\Arduino\\hardware\\tools\\avr,C:\\Users\\Yngve Brathaug\\AppData\\Local\\Arduino15\\packages",
+  "customBuildProperties": "build.path=c:\\Users\\Yngve Brathaug\\OneDrive - University of Wollongong\\Documents\\School OUW\\3 Third Semester\\ECTE940 Advanced Project\\Programming\\build,build.warn_data_percentage=75,runtime.tools.opencm_gcc.path=C:\\Users\\Yngve Brathaug\\AppData\\Local\\Arduino15\\packages\\OpenCM904\\tools\\opencm_gcc\\5.4.0-2016q2,runtime.tools.opencm_gcc-5.4.0-2016q2.path=C:\\Users\\Yngve Brathaug\\AppData\\Local\\Arduino15\\packages\\OpenCM904\\tools\\opencm_gcc\\5.4.0-2016q2,runtime.tools.opencm_tools.path=C:\\Users\\Yngve Brathaug\\AppData\\Local\\Arduino15\\packages\\OpenCM904\\tools\\opencm_tools\\0.0.2,runtime.tools.opencm_tools-0.0.2.path=C:\\Users\\Yngve Brathaug\\AppData\\Local\\Arduino15\\packages\\OpenCM904\\tools\\opencm_tools\\0.0.2",
+  "fqbn": "OpenCM904:OpenCM904:OpenCM904:upload_method=UploadMethod",
+  "hardwareFolders": "C:\\Program Files (x86)\\Arduino\\hardware,C:\\Users\\Yngve Brathaug\\AppData\\Local\\Arduino15\\packages",
+  "otherLibrariesFolders": "C:\\Users\\Yngve Brathaug\\Documents\\Arduino\\libraries",
+  "runtime.ide.version": "10812",
+  "sketchLocation": "c:\\Users\\Yngve Brathaug\\OneDrive - University of Wollongong\\Documents\\School OUW\\3 Third Semester\\ECTE940 Advanced Project\\Programming\\src\\ExoskeletonElbow.ino"
+}
