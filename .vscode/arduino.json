@@ -1,0 +1,6 @@
+{
+    "port": "COM10",
+    "board": "OpenCM904:OpenCM904:OpenCM904",
+    "configuration": "upload_method=UploadMethod",
+    "sketch": "src\\ExoskeletonElbow.ino"
+}

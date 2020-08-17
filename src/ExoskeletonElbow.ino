@@ -3,19 +3,28 @@
 
 #include "MX28.h"
 
+
 const uint8_t MX28_ID = 1;
 // Arduino serial baudrate
-#define BAUDRATE 57600
+#define BAUDRATE_ARDUINO 57600
+
+// Define input/output pins. 
 #define BOARD_LED_PIN 14
 #define BOARD_BUTTON_PIN 23
+
+// 
+bool exo_is_calibrated = false; 
 
 // Debug flag
 #define DEBUG_FLAG 1
 
 // Creating object MX28 motor.
-MX28 exoMotor(MX28_ID);
+const float gearRatio = 0.5;
+MX28 exoMotor(MX28_ID, gearRatio);
 
-enum State
+
+
+enum Control_State
 {
   INIT,
   CALIBARTION,
@@ -27,13 +36,22 @@ enum State
   MOVE_TO
 };
 
-State state = CALIBARTION;
+enum Calibration_State{
+  SETMIN, 
+  SETMAX
+};
+Control_State control_state = CALIBARTION;
+Calibration_State calib_state = SETMIN;
 
 void setup()
 {
-  Serial.begin(BAUDRATE);
-  while (!Serial);                                // Wait for Opening Serial Monitor
+  Serial.begin(BAUDRATE_ARDUINO);
+
+  while (!Serial){
+    Serial.println("Waiting for seiral");
+  }             // Wait for Opening Serial Monitor
   pinMode(BOARD_LED_PIN, OUTPUT);    // Set LED pin
+  pinMode(BOARD_BUTTON_PIN, INPUT_PULLUP);
   digitalWrite(BOARD_LED_PIN, HIGH); // HIGH is off ??
 
   bool success = false;
@@ -51,7 +69,7 @@ void setup()
   {
     Serial.println(log);
     Serial.println("Found MX 28 Motor");
-    toggleLEDXTimes(BOARD_LED_PIN, 5, 20);
+    toggleLEDXTimes(BOARD_LED_PIN, 5, 200);
     exoMotor.setTorqueOnOff(false);
   }
 }
@@ -60,16 +78,41 @@ void loop()
 {
 
   bool result = false;
-  switch (state)
+  switch (control_state)
   {
   case INIT:
-    break;
+  // Init is currently done in the arduino setup.
+    break; 
 
   case CALIBARTION:
-    exoMotor.setTorqueOnOff(true);
-    // exoMotor.setWheelMode();
-    Serial.print("The pressent angle is: ");
-    Serial.println(exoMotor.getPresentAngle());
+    // Disable torcque mode. 
+    exoMotor.setTorqueOnOff(false);
+    Serial.println(exoMotor.readItem("Punch"));
+    // Let arm  move to min position.
+    // Serial.println(digitalRead(BOARD_BUTTON_PIN));
+    switch (calib_state){
+      case SETMIN: 
+        if(!digitalRead(BOARD_BUTTON_PIN)){
+          Serial.println(exoMotor.setMinAngle(5));
+          Serial.print("The Homing offset is: ");
+          Serial.println(exoMotor.readItem("CW_Angle_Limit"));
+          calib_state = SETMAX;
+        }
+      
+      case SETMAX:
+        
+
+
+
+        exo_is_calibrated = true;
+    }
+    // Wait for button pressed, 
+    // Set new min value. 
+    // Let arm move to max position. 
+    // Wait for button pressed. 
+    // Set max value. 
+
+    // Change to state 3, (update values from sensors etc)
 
   case TORQUE_CONTROL:
 

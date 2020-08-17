@@ -16,6 +16,7 @@
   http://emanual.robotis.com/docs/en/parts/controller/opencm904/#arduino-ide
 */
 #include <DynamixelWorkbench.h>
+#include "MX28_ControlTable.h"
 
 class MX28
 {
@@ -26,7 +27,7 @@ public:
     * Setts the motor ID.
     * @param dxl_id Motor id. 
     */
-  MX28(uint8_t dxl_id);
+  MX28(uint8_t dxl_id, float gearRatio);
 
   /**
     * Initialise the Dynamixel serial bus for the contoller and motor.
@@ -71,7 +72,7 @@ public:
      * @param angle The minium allowed angle
      * @returns True if successful, False if not.
      * */
-  bool setMinAngle(uint16_t angle);
+  bool setMinAngle(float angle);
   // Set Home position.
   // Set min angel as pressent position
 
@@ -88,6 +89,13 @@ public:
      * @return The present angle of the motor. 
      * */
   float getPresentAngle();
+
+   /** 
+     * Reads the present position from the motor. 
+     * @return The present position in value
+     * */
+
+  int32_t getPresentPosition();
 
   /** 
      * Mover the motor to given angle. 
@@ -113,6 +121,13 @@ public:
     * @param state, True for on, False for off.
     * */
   void setMotorLED(bool state);
+
+
+   /**
+   * 
+   * 
+   */
+   int32_t readItem(const char *item_name);
 
 private:
   /** 
@@ -143,8 +158,14 @@ private:
      * */
   float convertAnalogToAngle(int32_t analog_angle_val);
 
+
+
+
+  
+
   // Constant.
   uint8_t motor_ID;
+  float gearRatio;
 };
 
 #endif

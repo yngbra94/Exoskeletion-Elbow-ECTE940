@@ -13,10 +13,11 @@ This
 
 DynamixelWorkbench MotorMX28;
 
-MX28::MX28(uint8_t dxl_id)
+MX28::MX28(uint8_t dxl_id, float ratio)
 {
      // Set motor ID n
      motor_ID = dxl_id;
+     gearRatio = ratio; 
 }
 /**
     * Initialise the Dynamixel serial bus for the contoller and motor.
@@ -112,10 +113,19 @@ bool MX28::setTorqueOnOff(bool onOff, const char **log)
      * @param angle The minium allowed angle
      * @returns True if successful, False if not.
      * */
-bool MX28::setMinAngle(uint16_t angle)
+bool MX28::setMinAngle(float angle)
 {
-     // Set Home position.
-     // Set min angel as pressent position
+     bool result = false;
+
+     MotorMX28.itemWrite(motor_ID, "Homing_Offset", 0); // Reset to initial value
+     // Update min value
+     int32_t currentPos = getPresentPosition();
+     result = MotorMX28.itemWrite(motor_ID, "Homing_Offset", (-1 *currentPos));
+     if(result)
+     {
+          // Add set min position
+     }
+     return result;
 
 }
 
@@ -131,13 +141,25 @@ bool MX28::setMaxAngle(uint16_t angle)
 
 /** 
      * Reads the present angle from the motor. 
-     * @return The present angle of the motor. 
+     * @return The present angle of the motor given in degrees. 
      * */
 float MX28::getPresentAngle()
 {
      int32_t analog_angle;
      MotorMX28.getPresentPositionData(motor_ID, &analog_angle);
      return convertAnalogToAngle(analog_angle);
+
+}
+
+/** 
+     * Reads the present position from the motor. 
+     * @return The present position in value
+     * */
+int32_t MX28::getPresentPosition()
+{
+     int32_t present_position;
+     MotorMX28.getPresentPositionData(motor_ID, &present_position);
+     return present_position;
 
 }
 
@@ -164,6 +186,7 @@ bool MX28::motorInMotion()
      * */
 bool MX28::goalReached()
 {
+     return 0; 
 }
 
 /**
@@ -205,7 +228,7 @@ bool MX28::setOpperationMode(uint8_t mode, const char **log)
      * */
 int32_t convertAngleToAnalog(float angle)
 {
-     return int32_t(angle*(4095.000/360.000));
+     return int32_t(angle*(4095.000/(360.000)));
 }
 
 /**
@@ -215,6 +238,15 @@ int32_t convertAngleToAnalog(float angle)
      * @returns The value rotational value used by the motor. 
      * */
 float MX28::convertAnalogToAngle(int32_t analog_angle_val) {
-     float angle = float(analog_angle_val) * float(360.000/ 4095.000);
+     float angle = gearRatio * float(analog_angle_val) * float(360.000/ 4095.000);
      return angle;
 } 
+
+
+
+ int32_t MX28::readItem(const char *item_name){
+      
+      int32_t result = 0; 
+      MotorMX28.itemRead(motor_ID, item_name, &result);
+      return result;
+ }
