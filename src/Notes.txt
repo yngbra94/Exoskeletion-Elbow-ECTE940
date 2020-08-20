@@ -1,0 +1,9 @@
+// Invert button
+// make extend x and exstrax x methods. 
+
+Calibration; 
+1. Setting min position, 
+    - Move arm to max flexsion. 
+    - Press the button. 
+    - Move the arm to max extention.
+    - Press the button. 

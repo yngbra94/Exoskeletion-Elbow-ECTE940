@@ -14,6 +14,7 @@ const uint8_t MX28_ID = 1;
 
 // 
 bool exo_is_calibrated = false; 
+bool active_device = true;
 
 // Debug flag
 #define DEBUG_FLAG 1
@@ -23,25 +24,41 @@ const float gearRatio = 0.5;
 MX28 exoMotor(MX28_ID, gearRatio);
 
 
+// Collection of sensor information. ¨
+// NOTE: TO BE MOVED TO MX28.cpp
+struct sernorData{
+  int32_t angle; 
+  int32_t position; // Given in value. 
+  int32_t minAngle;
+  int32_t maxAngle;
+  int32_t velocity;
 
-enum Control_State
+  // Add sensor info. 
+} mx28SensorData; 
+
+
+
+enum Opperation_State
 {
   INIT,
   CALIBARTION,
-  WHEEL_MODE,
-  JOINT_MODE,
-  PERTURBATE,
-  TORQUE_CONTROL,
-  MOVE_HOME,
-  MOVE_TO
+  ACTIVE_DEVICE,
+  TERMINATE
 };
 
 enum Calibration_State{
   SETMIN, 
   SETMAX
 };
-Control_State control_state = CALIBARTION;
+
+enum Control_State{
+  FREE_WEELING, 
+  PERTUBE
+};
+// Set initial switch states. 
+Opperation_State opperation_state = CALIBARTION;
 Calibration_State calib_state = SETMIN;
+Control_State contol_state = FREE_WEELING;
 
 void setup()
 {
@@ -77,8 +94,13 @@ void setup()
 void loop()
 {
 
-  bool result = false;
-  switch (control_state)
+  // 
+  if(!active_device){
+    opperation_state = TERMINATE;
+  }
+
+
+  switch (opperation_state)
   {
   case INIT:
   // Init is currently done in the arduino setup.
@@ -87,42 +109,104 @@ void loop()
   case CALIBARTION:
     // Disable torcque mode. 
     exoMotor.setTorqueOnOff(false);
-    Serial.println(exoMotor.readItem("Punch"));
-    // Let arm  move to min position.
-    // Serial.println(digitalRead(BOARD_BUTTON_PIN));
     switch (calib_state){
       case SETMIN: 
+        // Min position is max flexion
         if(!digitalRead(BOARD_BUTTON_PIN)){
-          Serial.println(exoMotor.setMinAngle(5));
-          Serial.print("The Homing offset is: ");
-          Serial.println(exoMotor.readItem("CW_Angle_Limit"));
-          calib_state = SETMAX;
+          bool setMinSuccess = exoMotor.setMinAngle(mx28SensorData.minAngle);
+          if(setMinSuccess){
+            toggleLEDXTimes(BOARD_LED_PIN, 2, 50);
+            Serial.println("Min angle is set");
+            calib_state = SETMAX;
+          } 
         }
+        break;
       
       case SETMAX:
-        
+      // Max position is at max extension. 
+        if(!digitalRead(BOARD_BUTTON_PIN)){
+          // Might not be needed.
+          bool successSetMaxAngle = exoMotor.setMaxAngle(mx28SensorData.maxAngle);
+          if (successSetMaxAngle){
+            toggleLEDXTimes(BOARD_LED_PIN, 2, 50);
+            exo_is_calibrated = true;
+            Serial.println("Max angle is set");
+            opperation_state = ACTIVE_DEVICE;
+          } else {
+            // Add error message. 
+            break; 
+          }
+        }
+        break;
 
-
-
-        exo_is_calibrated = true;
+      default:
+        Serial.println("Err: Calibration state does not exist"); 
+        break;  
     }
-    // Wait for button pressed, 
-    // Set new min value. 
-    // Let arm move to max position. 
-    // Wait for button pressed. 
-    // Set max value. 
+    break;
 
-    // Change to state 3, (update values from sensors etc)
+  case ACTIVE_DEVICE:
+    // Main case.
+    switch (contol_state)
+    {
+    case FREE_WEELING:
+      // In this mode the are should be able to move freely with minimum restrictions. 
+      exoMotor.setTorqueOnOff(false);
+      Serial.println("Free Wheeling");
+      if(!digitalRead(BOARD_BUTTON_PIN)){
+        contol_state = PERTUBE;
+      }
+      break;
 
-  case TORQUE_CONTROL:
+    case PERTUBE: 
+      // Read current position. 
+      Serial.println("Perturbe");
+      mx28SensorData.position = exoMotor.getPresentPosition();
+      mx28SensorData.angle = exoMotor.getPresentAngle();
+      // TODO: Make different perturbation modes. 
+      // Perturbe the arm 10 degrees extension and return 
+      Serial.print("The arm is moving from ");
+      Serial.print(mx28SensorData.angle); 
+      Serial.print(" to ");
+      Serial.print(mx28SensorData.angle + 5); 
 
-  case MOVE_HOME:
+      // Return to free wheeling mode. 
 
-  case MOVE_TO:
+
+      break;
+    
+    default:
+      break;
+    }
+
+    
+    // exoMotor.setTorqueOnOff(true);
+    // Serial.println(exoMotor.setJointMode(100, 10000));
+
+    mx28SensorData.angle = exoMotor.getPresentAngle();
+    // if(DEBUG_FLAG > 0){
+    //   Serial.println("Sensor information are:");
+    //   Serial.print("Angle: ");
+    //   Serial.println(mx28SensorData.angle);
+    //   Serial.print("Min angle: ");
+    //   Serial.println(mx28SensorData.minAngle);
+    //   Serial.print("Max angle: ");
+    //   Serial.println(mx28SensorData.maxAngle);
+    // }
+  break;
+
+
+  case TERMINATE:
+    // If error occure or device is swiched of, temrinate.  
+    break;
 
   default:
     break;
   }
+
+
+
+
 }
 
 

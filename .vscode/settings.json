@@ -7,6 +7,8 @@
         "xstring": "cpp",
         "xutility": "cpp",
         "ostream": "cpp",
-        "*.tcc": "cpp"
+        "*.tcc": "cpp",
+        "cstdlib": "cpp",
+        "cmath": "cpp"
     }
 }
