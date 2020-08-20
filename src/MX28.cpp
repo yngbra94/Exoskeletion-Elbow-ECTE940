@@ -145,14 +145,16 @@ bool MX28::setMinAngle(int32_t &minAngle)
      bool success = false;
 
      success = MotorMX28.itemWrite(motor_ID, "Homing_Offset", 0); // Reset to initial value
+     success = MotorMX28.itemWrite(motor_ID, "Min_Position_Limit", 0);
+     success = MotorMX28.itemWrite(motor_ID, "Max_Position_Limit", 0);
      // Update min value
      
      int32_t currentPos = getPresentPosition();
 
-     success = MotorMX28.itemWrite(motor_ID, "Homing_Offset", (currentPos));
+     success = MotorMX28.itemWrite(motor_ID, "Homing_Offset", currentPos);
 
      if(success){
-           success = MotorMX28.itemWrite(motor_ID, "Min_Position_Limit", currentPos);
+          success = MotorMX28.itemWrite(motor_ID, "Min_Position_Limit", currentPos);
      }
      minAngle = getPresentAngle();
      return success;

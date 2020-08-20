@@ -130,7 +130,8 @@ void loop()
             Serial.println("*Calibration, set max");
             calib_state = SETMAX;
           } else {
-            Serial.println("Calib Err, could not set MIN position");
+            Serial.print("Calib Err, could not set MIN position: ");
+            Serial.println(exoMotor.getPresentPosition());
           } 
         }
         break;
@@ -182,8 +183,12 @@ void loop()
       
       // TODO: Make different perturbation modes. 
       // Perturbe the arm 10 degrees extension and return 
-      // exoMotor.setJointMode();
-      // exoMotor.moveToAngle(10);
+      exoMotor.setTorqueOnOff(true);
+      exoMotor.moveToAngle(10);
+      if(10 == exoMotor.getPresentAngle()){
+        contol_state = FREE_WEELING;
+      } 
+      break;
       // Return to free wheeling mode. 
 
       
@@ -197,11 +202,11 @@ void loop()
     // Serial.println(exoMotor.setJointMode(100, 10000));
 
     mx28SensorData.angle = exoMotor.getPresentAngle();
-    if(DEBUG_FLAG > 0){
-      Serial.println("Sensor information are:");
-      Serial.print("Angle: ");
-      Serial.println(mx28SensorData.angle);
-    }
+    // if(DEBUG_FLAG > 0){
+    //   Serial.println("Sensor information are:");
+    //   Serial.print("Angle: ");
+    //   Serial.println(mx28SensorData.angle);
+    // }
   break;
 
 
