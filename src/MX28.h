@@ -32,6 +32,7 @@ public:
   MX28(uint8_t dxl_id, float gearRatio);
 
    bool initBus(const char **log = NULL);
+   bool initMotor();
 
    uint8_t getMotorID();
    bool setMotorID(uint8_t motorID);
@@ -46,18 +47,12 @@ public:
    float getPresentAngle();
    int32_t getPresentPosition();
    
-   bool moveToAngle(int16_t angle);
+   bool moveToAngle(float angle);
    bool moveToPosition(int32_t position);
    bool motorInMotion();
    bool goalReached();
    
    void setMotorLED(bool state);
-
-
-   /**
-   * 
-   * 
-   */
    int32_t readItem(const char *item_name);
 
 private:
@@ -72,22 +67,22 @@ private:
      * 4, Extended Position Control Mode. Multi turn mode. !! NOT IN USE IN THE EXOSKELETON PROJECT. 
      * 16, PWM Control Mode (Voltage Control Mode)
      * */
-  bool setOpperationMode(uint8_t mode, const char **log = NULL);
+  bool setOperationMode(uint8_t mode, const char **log = NULL);
 
   /**
      * Convert an angle (0-360) to the analog value readed from and to the motor. 
      * @param angle The angle to convert. 
      * @returns The value rotational value used by the motor. 
      * */
-  int32_t convertAngleToValue(float angle);
+  int32_t convertAngleToValue(const float &angle);
 
   /**
      * Convert an Analog value (0-4095) at an Angle (0-360)
      * 
-     * @param analog_angle_val The analog angle value (0-4095). 
+     * @param angle_val The analog angle value (0-4095). 
      * @returns The value rotational value used by the motor. 
      * */
-  float convertValueToAngle(int32_t analog_angle_val);
+  float convertValueToAngle(const int32_t &angle_val);
 
 
 

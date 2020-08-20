@@ -1,9 +1,21 @@
-// Invert button
+//** TODO;  
+//Invert button
 // make extend x and exstrax x methods. 
+// Move sensor data struct to MX28.cpp
+
+
+Motor initialization. 
+    - Revers direction. 
+    - Extended rotation mode. (The homing offset for normal position has a to small range)
+
 
 Calibration; 
-1. Setting min position, 
+. Setting min position, 
     - Move arm to max flexsion. 
     - Press the button. 
+    - Led will flash two times
     - Move the arm to max extention.
     - Press the button. 
+    - Led will flash two times
+
+

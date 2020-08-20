@@ -76,6 +76,18 @@ bool MX28::setMotorID(uint8_t motorID)
 }
 
 /**
+ * Set up the motor config. 
+ */
+bool MX28::initMotor(){
+     bool success = false; 
+
+     // Reverse the motor direction. 
+     success = MotorMX28.itemWrite(motor_ID, "Drive_Mode", 0x01);
+     success = MotorMX28.itemWrite(motor_ID, "Operating_Mode", 0x04);
+     return success;
+}
+
+/**
      * Sets the motor in Wheeling mode. This makes it free to move.
      * @returns True if successful, False if not. 
      * */
@@ -128,47 +140,47 @@ bool MX28::setTorqueOnOff(bool onOff, const char **log)
 bool MX28::setMinAngle(int32_t &minAngle)
 {    
      // TODO: set limits in motor
+     // USE:  Max_Position_Limit
 
-     bool result = false;
+     bool success = false;
 
-     MotorMX28.itemWrite(motor_ID, "Homing_Offset", 0); // Reset to initial value
+     success = MotorMX28.itemWrite(motor_ID, "Homing_Offset", 0); // Reset to initial value
      // Update min value
-     minAngle = getPresentAngle();
+     
      int32_t currentPos = getPresentPosition();
 
-     result = MotorMX28.itemWrite(motor_ID, "Homing_Offset", (-1 *currentPos));
+     success = MotorMX28.itemWrite(motor_ID, "Homing_Offset", (currentPos));
 
-     return result;
+     if(success){
+           success = MotorMX28.itemWrite(motor_ID, "Min_Position_Limit", currentPos);
+     }
+     minAngle = getPresentAngle();
+     return success;
 
 }
 
-/**
+     /**
      * Set the maximum angle the motor is allowed to move to. 
      * @param angle The maximum allowed angle
      * @returns True if successful, False if not.
-     * */
+     **/
 bool MX28::setMaxAngle( int32_t &maxAngle)
 {
      // TODO: set limits in motor
-
      maxAngle = getPresentAngle();
-     if(maxAngle != 0)
-          return true;
-     else 
-          return false; 
+     return MotorMX28.itemWrite(motor_ID, "Max_Position_Limit", maxAngle);
 }
 // Set max angel as pressent position.
 
 /** 
      * Reads the present angle from the motor. 
      * @return The present angle of the motor given in degrees. 
-     * */
+* */
 float MX28::getPresentAngle()
 {
      int32_t analog_angle;
      MotorMX28.getPresentPositionData(motor_ID, &analog_angle);
      return convertValueToAngle(analog_angle);
-
 }
 
 /** 
@@ -183,16 +195,16 @@ int32_t MX28::getPresentPosition()
 
 }
 
-  /** 
-     * Mover the motor to given angle. 
-     * @param angle Move to this angle.
-     * */
-   bool moveToAngle(int16_t angle){
-        
-        
-        
-        return 0;
-   }
+// /** 
+// * Mover the motor to given angle. 
+//  * @param angle Move to this angle.
+//  * */
+bool MX28::moveToAngle(float angle)
+{
+     int32_t pos = convertAngleToValue(angle);
+     return MotorMX28.goalPosition(motor_ID, pos);
+     
+}
 
 
 /** 
@@ -220,9 +232,8 @@ bool MX28::motorInMotion()
      * Check if to motion goal is reached.  
      * @return True if the motor has reached the desired position. 
      * */
-bool MX28::goalReached()
-{
-     return 0; 
+bool MX28::goalReached(){
+
 }
 
 /**
@@ -252,7 +263,7 @@ void MX28::setMotorLED(bool state)
      * 4, Extended Position Control Mode. Multi turn mode. !! NOT IN USE IN THE EXOSKELETON PROJECT. 
      * 16, PWM Control Mode (Voltage Control Mode)
      * */
-bool MX28::setOpperationMode(uint8_t mode, const char **log)
+bool MX28::setOperationMode(uint8_t mode, const char **log)
 {
      MotorMX28.setOperatingMode(motor_ID, mode, log);
 }
@@ -262,9 +273,9 @@ bool MX28::setOpperationMode(uint8_t mode, const char **log)
      * @param angle The angle to convert. 
      * @returns The value rotational value used by the motor. 
      * */
-int32_t convertAngleToValue(float angle)
+int32_t MX28::convertAngleToValue(const float &angle)
 {
-     return int32_t(angle*(4095.000/(360.000)));
+     return int32_t(angle*(4095.000/(360.000*gearRatio)));
 }
 
 /**
@@ -273,8 +284,8 @@ int32_t convertAngleToValue(float angle)
      * @param analog_angle_val The analog angle value (0-4095). 
      * @returns The value rotational value used by the motor. 
      * */
-float MX28::convertValueToAngle(int32_t analog_angle_val) {
-     float angle = gearRatio * float(analog_angle_val) * float(360.000/ 4095.000);
+float MX28::convertValueToAngle(const int32_t &angle_val) {
+     float angle = gearRatio* angle_val * float(360.000/ 4095.000);
      return angle;
 } 
 

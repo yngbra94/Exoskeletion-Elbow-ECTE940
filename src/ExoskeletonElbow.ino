@@ -26,8 +26,8 @@ MX28 exoMotor(MX28_ID, gearRatio);
 
 // Collection of sensor information. ¨
 // NOTE: TO BE MOVED TO MX28.cpp
-struct sernorData{
-  int32_t angle; 
+struct sensorData{
+  float angle; 
   int32_t position; // Given in value. 
   int32_t minAngle;
   int32_t maxAngle;
@@ -56,7 +56,7 @@ enum Control_State{
   PERTUBE
 };
 // Set initial switch states. 
-Opperation_State opperation_state = CALIBARTION;
+Opperation_State operation_state = INIT;
 Calibration_State calib_state = SETMIN;
 Control_State contol_state = FREE_WEELING;
 
@@ -89,21 +89,28 @@ void setup()
     toggleLEDXTimes(BOARD_LED_PIN, 5, 200);
     exoMotor.setTorqueOnOff(false);
   }
+
+  // Initialise motor parameters. 
+  success = exoMotor.initMotor();
+
 }
 
 void loop()
 {
-
+  // Serial.println(digitalRead(BOARD_BUTTON_PIN));
   // 
   if(!active_device){
-    opperation_state = TERMINATE;
+    operation_state = TERMINATE;
   }
 
 
-  switch (opperation_state)
+  switch (operation_state)
   {
   case INIT:
   // Init is currently done in the arduino setup.
+
+    operation_state = CALIBARTION;
+    Serial.println("*Calibration, set min");
     break; 
 
   case CALIBARTION:
@@ -111,13 +118,19 @@ void loop()
     exoMotor.setTorqueOnOff(false);
     switch (calib_state){
       case SETMIN: 
+        
         // Min position is max flexion
         if(!digitalRead(BOARD_BUTTON_PIN)){
           bool setMinSuccess = exoMotor.setMinAngle(mx28SensorData.minAngle);
+          delay(500);
           if(setMinSuccess){
             toggleLEDXTimes(BOARD_LED_PIN, 2, 50);
-            Serial.println("Min angle is set");
+            Serial.print("Min angle is set to ");
+            Serial.println(mx28SensorData.minAngle);
+            Serial.println("*Calibration, set max");
             calib_state = SETMAX;
+          } else {
+            Serial.println("Calib Err, could not set MIN position");
           } 
         }
         break;
@@ -130,11 +143,14 @@ void loop()
           if (successSetMaxAngle){
             toggleLEDXTimes(BOARD_LED_PIN, 2, 50);
             exo_is_calibrated = true;
-            Serial.println("Max angle is set");
-            opperation_state = ACTIVE_DEVICE;
+            Serial.print("Max angle is set to: ");
+            Serial.println(mx28SensorData.maxAngle);
+            Serial.println(exoMotor.getPresentPosition());
+            Serial.println("Calibration, set max");
+            Serial.println("*Free Wheeling");
+            operation_state = ACTIVE_DEVICE;
           } else {
-            // Add error message. 
-            break; 
+            Serial.println("Calib Err, could not set MAX position");
           }
         }
         break;
@@ -152,28 +168,25 @@ void loop()
     case FREE_WEELING:
       // In this mode the are should be able to move freely with minimum restrictions. 
       exoMotor.setTorqueOnOff(false);
-      Serial.println("Free Wheeling");
+      
       if(!digitalRead(BOARD_BUTTON_PIN)){
+        Serial.println("Perturbate");
         contol_state = PERTUBE;
       }
       break;
 
     case PERTUBE: 
       // Read current position. 
-      Serial.println("Perturbe");
       mx28SensorData.position = exoMotor.getPresentPosition();
       mx28SensorData.angle = exoMotor.getPresentAngle();
+      
       // TODO: Make different perturbation modes. 
       // Perturbe the arm 10 degrees extension and return 
-      Serial.print("The arm is moving from ");
-      Serial.print(mx28SensorData.angle); 
-      Serial.print(" to ");
-      Serial.print(mx28SensorData.angle + 5); 
-
+      // exoMotor.setJointMode();
+      // exoMotor.moveToAngle(10);
       // Return to free wheeling mode. 
 
-
-      break;
+      
     
     default:
       break;
@@ -184,21 +197,16 @@ void loop()
     // Serial.println(exoMotor.setJointMode(100, 10000));
 
     mx28SensorData.angle = exoMotor.getPresentAngle();
-    // if(DEBUG_FLAG > 0){
-    //   Serial.println("Sensor information are:");
-    //   Serial.print("Angle: ");
-    //   Serial.println(mx28SensorData.angle);
-    //   Serial.print("Min angle: ");
-    //   Serial.println(mx28SensorData.minAngle);
-    //   Serial.print("Max angle: ");
-    //   Serial.println(mx28SensorData.maxAngle);
-    // }
+    if(DEBUG_FLAG > 0){
+      Serial.println("Sensor information are:");
+      Serial.print("Angle: ");
+      Serial.println(mx28SensorData.angle);
+    }
   break;
 
 
   case TERMINATE:
-    // If error occure or device is swiched of, temrinate.  
-    break;
+    Serial.println("Gerneral Error Message. \nProgram treminated. \n\n Err*");
 
   default:
     break;
