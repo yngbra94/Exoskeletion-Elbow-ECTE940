@@ -20,6 +20,7 @@ MX28::MX28(uint8_t dxl_id, float ratio)
      // Set motor ID n
      motor_ID = dxl_id;
      gearRatio = ratio; 
+     
 }
 /**
     * Initialise the Dynamixel serial bus for the contoller and motor.
@@ -82,8 +83,12 @@ bool MX28::initMotor(){
      bool success = false; 
 
      // Reverse the motor direction. 
+     success = setTorqueOnOff(false);
      success = MotorMX28.itemWrite(motor_ID, "Drive_Mode", 0x01);
      success = MotorMX28.itemWrite(motor_ID, "Operating_Mode", 0x04);
+     success = MotorMX28.itemWrite(motor_ID, "Homing_Offset", 0); // Reset to initial value
+     success = MotorMX28.itemWrite(motor_ID, "Min_Position_Limit", 0);
+     success = MotorMX28.itemWrite(motor_ID, "Max_Position_Limit", 1);
      return success;
 }
 
@@ -139,14 +144,7 @@ bool MX28::setTorqueOnOff(bool onOff, const char **log)
      * */
 bool MX28::setMinAngle(int32_t &minAngle)
 {    
-     // TODO: set limits in motor
-     // USE:  Max_Position_Limit
-
      bool success = false;
-
-     success = MotorMX28.itemWrite(motor_ID, "Homing_Offset", 0); // Reset to initial value
-     success = MotorMX28.itemWrite(motor_ID, "Min_Position_Limit", 0);
-     success = MotorMX28.itemWrite(motor_ID, "Max_Position_Limit", 0);
      // Update min value
      
      int32_t currentPos = getPresentPosition();
@@ -166,10 +164,16 @@ bool MX28::setMinAngle(int32_t &minAngle)
      * @param angle The maximum allowed angle
      * @returns True if successful, False if not.
      **/
-bool MX28::setMaxAngle( int32_t &maxAngle)
+bool MX28::setMaxAngle(int32_t &maxAngle)
 {
-     // TODO: set limits in motor
      maxAngle = getPresentAngle();
+     // check if min angle are larger than max angle. 
+     int32_t minAngle;
+     MotorMX28.itemRead(motor_ID, "Min_Position_Limit", &minAngle);
+     // if(maxAngle < minAngle){
+     //      // Write fincy error msg. 
+     //      return false;
+     // }
      return MotorMX28.itemWrite(motor_ID, "Max_Position_Limit", maxAngle);
 }
 // Set max angel as pressent position.
@@ -197,12 +201,107 @@ int32_t MX28::getPresentPosition()
 
 }
 
-// /** 
-// * Mover the motor to given angle. 
-//  * @param angle Move to this angle.
-//  * */
+ /**
+  * Return present velocity
+  */
+int32_t MX28::getPresentVelocity(){
+     int32_t present_velocity;
+     MotorMX28.itemRead(motor_ID, "Present_Velocity", &present_velocity);
+     return present_velocity;
+}
+
+ /**
+  * Set velocity
+  */
+bool MX28::setVelocity(const int32_t velocity){
+     return MotorMX28.itemWrite(motor_ID, "Velocity_Limit", velocity);
+}
+
+/**
+ * Udate all parameters in the MotorParamtes struct (MX28.h)
+ */
+bool MX28::updateParamters(MotorParameters motorParameters, String &msg){
+     bool success = true;
+     msg = "";
+     if(!MotorMX28.itemWrite(motor_ID, "Velocity_Limit", motorParameters.maxVelocity)){
+          msg += "[Error:] Could not update Velocity_Limit \n";
+          success = false;
+     }
+     if(!MotorMX28.itemWrite(motor_ID, "Acceleration_Limit", motorParameters.maxAcceleration)){
+          msg += "[Error:] Could not update Acceleration_Limit \n";
+          success = false;
+     }
+     if(!MotorMX28.itemWrite(motor_ID, "Velocity_P_Gain", motorParameters.PgainVelocity)){
+          msg += "[Error:] Could not update Velocity_P_Gain\n";
+          success = false;
+     }
+     if(!MotorMX28.itemWrite(motor_ID, "Velocity_I_Gain", motorParameters.IgainVelocity)){
+          msg += "[Error:] Could not update Velocity_I_Gain\n";
+          success = false;
+     }
+     if(!MotorMX28.itemWrite(motor_ID, "Position_P_Gain", motorParameters.PgainPosition)){
+          msg += "[Error:] Could not update Position_P_Gain\n";
+          success = false;
+     }
+     if(!MotorMX28.itemWrite(motor_ID, "Position_I_Gain", motorParameters.IgainPosition)){
+          msg += "[Error:] Could not update Position_I_Gain\n";
+          success = false;
+     }
+     if(!MotorMX28.itemWrite(motor_ID, "Position_D_Gain", motorParameters.DgainPosition)){
+          msg += "[Error:] Could not update Position_D_Gain\n";
+          success = false;
+     }
+     if(success){
+          msg = "Motor parameters uppdated.";
+     }
+     return success;
+}
+
+
+bool MX28::updateSensorData(SensorData& sensorData, String &msg){
+     bool success = true;
+     msg = "";
+     sensorData.angle = getPresentAngle();
+
+     if(!MotorMX28.itemRead(motor_ID, "Present_Position", &sensorData.position)){
+          msg += "[Error:] Could not get Present_Position\n";
+          success = false;  
+     }
+     if(!MotorMX28.itemRead(motor_ID, "Present_Velocity", &sensorData.velocity)){
+          msg += "[Error:] Could not get Present_Velocity\n";
+          success = false;  
+     }
+     if(!MotorMX28.itemRead(motor_ID, "Present_Load", &sensorData.load)){
+          msg += "[Error:] Could not get Present_Load\n";
+          success = false;  
+     }
+     if(!MotorMX28.itemRead(motor_ID, "Present_PWM", &sensorData.PWM)){
+          msg += "[Error:] Could not get Present_PWM\n";
+          success = false;  
+     }
+     if(!MotorMX28.itemRead(motor_ID, "Present_Temperature", &sensorData.temp)){
+          msg += "[Error:] Could not get Present_Temperature\n";
+          success = false;  
+     }
+     if(!MotorMX28.itemRead(motor_ID, "Present_Input_Voltage", &sensorData.inputVoltage)){
+          msg += "[Error:] Could not get Present_Input_Voltage\n";
+          success = false;  
+     }
+     if(success){
+          msg = "Sensor data updated";
+     }
+     return success;
+}
+
+
+
+ /** 
+ * Mover the motor to given angle. 
+ * @param angle Move to this angle.
+ * */
 bool MX28::moveToAngle(float angle)
 {
+     goalAngle = angle;
      int32_t pos = convertAngleToValue(angle);
      return MotorMX28.goalPosition(motor_ID, pos);
      
@@ -213,7 +312,6 @@ bool MX28::moveToAngle(float angle)
      * Mover the motor to given positon. 
      * @param position goal position. 
      * */
-
 bool MX28::moveToPosition(int32_t position)
 {
      return MotorMX28.goalPosition(motor_ID, position);
@@ -235,7 +333,11 @@ bool MX28::motorInMotion()
      * @return True if the motor has reached the desired position. 
      * */
 bool MX28::goalReached(){
-
+     if(goalAngle == getPresentAngle()){
+          return true;
+     } else {
+          return false;
+     }
 }
 
 /**

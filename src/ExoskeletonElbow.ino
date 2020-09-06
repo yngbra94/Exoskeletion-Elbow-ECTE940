@@ -2,6 +2,8 @@
 /* Authors: Yngve Brathaug */
 
 #include "MX28.h"
+#include "functions.h"
+#include "exoEnum.h"
 
 
 const uint8_t MX28_ID = 1;
@@ -12,9 +14,8 @@ const uint8_t MX28_ID = 1;
 #define BOARD_LED_PIN 14
 #define BOARD_BUTTON_PIN 23
 
-// 
+// Flags
 bool exo_is_calibrated = false; 
-bool active_device = true;
 
 // Debug flag
 #define DEBUG_FLAG 1
@@ -22,51 +23,45 @@ bool active_device = true;
 // Creating object MX28 motor.
 const float gearRatio = 0.5;
 MX28 exoMotor(MX28_ID, gearRatio);
+MotorParameters motorParameters;
+SensorData mx28SensorData;
 
 
-// Collection of sensor information. ¨
-// NOTE: TO BE MOVED TO MX28.cpp
-struct sensorData{
-  float angle; 
-  int32_t position; // Given in value. 
-  int32_t minAngle;
-  int32_t maxAngle;
-  int32_t velocity;
+String msg;
+unsigned long sensorUpdateTime = 0;
+int sensorUpdataDelay = 1000; // ms
 
-  // Add sensor info. 
-} mx28SensorData; 
+struct ExoskeletonParams{
+  int perturbMode = 0; // 0: FWD->BWD, 1: BWD->FWD
+  bool active_device = true;
+  float angleToMove = 20;
+  float perturbAtAngle = 50;
+  float degThreshold = 2; //
+  float velocityThreshold = 0; // Given in %
+  float averageVelocity = 200;// 
+}exoskeletonParams;
 
 
 
-enum Opperation_State
-{
-  INIT,
-  CALIBARTION,
-  ACTIVE_DEVICE,
-  TERMINATE
-};
 
-enum Calibration_State{
-  SETMIN, 
-  SETMAX
-};
-
-enum Control_State{
-  FREE_WEELING, 
-  PERTUBE
-};
 // Set initial switch states. 
 Opperation_State operation_state = INIT;
 Calibration_State calib_state = SETMIN;
 Control_State contol_state = FREE_WEELING;
+Perturbe_State perturb_state = INIT_PERT;
+
+float startAngle = 0;
+float endAngle = 0;
+
+
 
 void setup()
 {
   Serial.begin(BAUDRATE_ARDUINO);
 
-  while (!Serial){
-    Serial.println("Waiting for seiral");
-  }             // Wait for Opening Serial Monitor
+  // while (!Serial){
+  //   Serial.println("Waiting for seiral");
+  // }             // Wait for Opening Serial Monitor
   pinMode(BOARD_LED_PIN, OUTPUT);    // Set LED pin
   pinMode(BOARD_BUTTON_PIN, INPUT_PULLUP);
   digitalWrite(BOARD_LED_PIN, HIGH); // HIGH is off ??
@@ -86,20 +81,24 @@ void setup()
   {
     Serial.println(log);
     Serial.println("Found MX 28 Motor");
-    toggleLEDXTimes(BOARD_LED_PIN, 5, 200);
+    toggleLEDXTimes(exoMotor, BOARD_LED_PIN, 5, 200);
     exoMotor.setTorqueOnOff(false);
   }
 
   // Initialise motor parameters. 
   success = exoMotor.initMotor();
-
 }
+
+
+
+
 
 void loop()
 {
-  // Serial.println(digitalRead(BOARD_BUTTON_PIN));
-  // 
-  if(!active_device){
+
+  // Success flag. 
+  bool success = false;
+  if(!exoskeletonParams.active_device){
     operation_state = TERMINATE;
   }
 
@@ -113,7 +112,7 @@ void loop()
     Serial.println("*Calibration, set min");
     break; 
 
-  case CALIBARTION:
+  case CALIBARTION: 
     // Disable torcque mode. 
     exoMotor.setTorqueOnOff(false);
     switch (calib_state){
@@ -122,9 +121,9 @@ void loop()
         // Min position is max flexion
         if(!digitalRead(BOARD_BUTTON_PIN)){
           bool setMinSuccess = exoMotor.setMinAngle(mx28SensorData.minAngle);
-          delay(500);
+          delay(500); // Wait for btn release
           if(setMinSuccess){
-            toggleLEDXTimes(BOARD_LED_PIN, 2, 50);
+            toggleLEDXTimes(exoMotor , BOARD_LED_PIN, 2, 50);
             Serial.print("Min angle is set to ");
             Serial.println(mx28SensorData.minAngle);
             Serial.println("*Calibration, set max");
@@ -142,7 +141,7 @@ void loop()
           // Might not be needed.
           bool successSetMaxAngle = exoMotor.setMaxAngle(mx28SensorData.maxAngle);
           if (successSetMaxAngle){
-            toggleLEDXTimes(BOARD_LED_PIN, 2, 50);
+            toggleLEDXTimes(exoMotor ,BOARD_LED_PIN, 2, 50);
             exo_is_calibrated = true;
             Serial.print("Max angle is set to: ");
             Serial.println(mx28SensorData.maxAngle);
@@ -157,7 +156,7 @@ void loop()
         break;
 
       default:
-        Serial.println("Err: Calibration state does not exist"); 
+        Serial.println("[Error:] Calibration state does not exist"); 
         break;  
     }
     break;
@@ -171,86 +170,116 @@ void loop()
       exoMotor.setTorqueOnOff(false);
       
       if(!digitalRead(BOARD_BUTTON_PIN)){
-        Serial.println("Perturbate");
+        Serial.println("[STATE:] PERTURBE");
         contol_state = PERTUBE;
+      }
+
+      if(exoMotor.getPresentAngle() == exoskeletonParams.perturbAtAngle){
+        if(isWithinRange(exoMotor.getPresentVelocity(), exoskeletonParams.averageVelocity, exoskeletonParams.velocityThreshold)){
+          //TODO, Use this to start pertubariont
+          // Serial.println("[STATE:] PERTURBE");
+          // contol_state = PERTUBE;
+        }
       }
       break;
 
-    case PERTUBE: 
-      // Read current position. 
-      mx28SensorData.position = exoMotor.getPresentPosition();
-      mx28SensorData.angle = exoMotor.getPresentAngle();
-      
-      // TODO: Make different perturbation modes. 
-      // Perturbe the arm 10 degrees extension and return 
-      exoMotor.setTorqueOnOff(true);
-      exoMotor.moveToAngle(10);
-      if(10 == exoMotor.getPresentAngle()){
-        contol_state = FREE_WEELING;
-      } 
-      break;
-      // Return to free wheeling mode. 
+      case PERTUBE: 
+        exoMotor.setTorqueOnOff(true);
+        switch (perturb_state)
+        {
+          case INIT_PERT:
+            // Set init profile
+            startAngle = mx28SensorData.angle;
+            // Check mode
+            if(exoskeletonParams.perturbMode == 0){
+              endAngle   = mx28SensorData.angle + exoskeletonParams.angleToMove;
+            } else if(exoskeletonParams.perturbMode == 1){
+              endAngle   = mx28SensorData.angle - exoskeletonParams.angleToMove;
+            } 
 
-      
+
+            if(endAngle < mx28SensorData.minAngle){
+              endAngle = mx28SensorData.minAngle;
+            }
+            else if (endAngle > mx28SensorData.maxAngle){
+              endAngle = mx28SensorData.maxAngle;
+            }
+
+            perturb_state = PERT;
+            Serial.println("Moving PERTURBE"); 
+            break;
+    
+          case PERT:
+            exoMotor.moveToAngle(endAngle);
+            if(!isWithinRange(exoMotor.getPresentAngle(), endAngle, exoskeletonParams.degThreshold)){
+              break;
+            } else {
+              perturb_state = HOME;
+              Serial.println("Moving HOME");  
+            }
+
+
+          case HOME:
+            exoMotor.moveToAngle(startAngle);
+            if(isWithinRange(exoMotor.getPresentAngle(), startAngle, exoskeletonParams.degThreshold)){
+              perturb_state = INIT_PERT;
+              contol_state = FREE_WEELING;
+              Serial.println("FREE_WEELING");
+            } 
+            break;
+
+          default:
+            // Fancy error Message 
+            break;
+        }
+
     
     default:
       break;
     }
 
-    
-    // exoMotor.setTorqueOnOff(true);
-    // Serial.println(exoMotor.setJointMode(100, 10000));
-
-    mx28SensorData.angle = exoMotor.getPresentAngle();
-    // if(DEBUG_FLAG > 0){
-    //   Serial.println("Sensor information are:");
-    //   Serial.print("Angle: ");
-    //   Serial.println(mx28SensorData.angle);
-    // }
   break;
 
 
   case TERMINATE:
-    Serial.println("Gerneral Error Message. \nProgram treminated. \n\n Err*");
+    Serial.println("[Error]: Gerneral Error Message. \nProgram treminated.");
+    // Add shut down. 
 
   default:
     break;
   }
 
 
+    // Update sensor data. 
+    if(!exoMotor.updateSensorData(mx28SensorData, msg)){
+      Serial.println(msg);
+    }
+    if(DEBUG_FLAG > 2){
+      if(millis() >= sensorUpdateTime + sensorUpdataDelay){
+        sensorUpdateTime += sensorUpdataDelay;
+        Serial.println("Sensor information are:");
+        Serial.print("Angle: ");
+        Serial.println(mx28SensorData.angle);
+        Serial.print("Velocity: ");
+        Serial.println(mx28SensorData.velocity);
+        Serial.print("Load: ");
+        Serial.println(mx28SensorData.load);
+        Serial.print("Temp: ");
+        Serial.println(mx28SensorData.temp);
+      }
+    }
 
 
+    // Update parameters
+
+
+    // TODO: make dirty flag
+    if(!exoMotor.updateParamters(motorParameters, msg)){
+      // Serial.println("[Err:] Could not update parametrs"); 
+      // Serial.println(msg);
+    }
 }
 
 
-void printDouble( double val, unsigned int precision){
-// prints val with number of decimal places determine by precision
-// NOTE: precision is 1 followed by the number of zeros for the desired number of decimial places
-// example: printDouble( 3.1415, 100); // prints 3.14 (two decimal places)
 
-   Serial.print (int(val));  //prints the int part
-   Serial.print("."); // print the decimal point
-   unsigned int frac;
-   if(val >= 0)
-       frac = (val - int(val)) * precision;
-   else
-       frac = (int(val)- val ) * precision;
-   Serial.println(frac,DEC) ;
-} 
 
-// Toggle board pin x number of times.
-// @param boardPin
-// @param tglnr, number of times to toggle.
-// @param tglSpeed, delay between each state change
-void toggleLEDXTimes(short boardPin, short tglnr, int tglSpeed)
-{
-  for (int i = 0; i < tglnr; i++)
-  {
-    delay(tglSpeed);
-    digitalWrite(boardPin, LOW);
-    exoMotor.setMotorLED(true);
-    delay(tglSpeed);
-    digitalWrite(boardPin, HIGH);
-    exoMotor.setMotorLED(false);
-  }
-}

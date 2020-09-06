@@ -20,6 +20,35 @@
 #include "MX28_ControlTable.h"
 
 
+struct MotorParameters{
+  int32_t maxVelocity     = 1022;
+  int32_t maxAcceleration = 32750;
+
+  int32_t PgainVelocity   = 16000;
+  int32_t IgainVelocity   = 1920;
+  
+  int32_t PgainPosition   = 16000;
+  int32_t IgainPosition   = 0;
+  int32_t DgainPosition   = 0;
+};
+
+
+// Collection of sensor information. ¨
+// NOTE: TO BE MOVED TO MX28.cpp
+struct SensorData{
+  float angle; 
+  int32_t position; // Given in value. 
+  int32_t minAngle;
+  int32_t maxAngle;
+  int32_t velocity;
+  int32_t load;
+  int32_t PWM;
+  int32_t temp;
+  int32_t inputVoltage;
+
+  // Add sensor info. 
+}; 
+
 class MX28
 {
 public:
@@ -44,8 +73,14 @@ public:
    
    bool setMinAngle(int32_t &minAngle);
    bool setMaxAngle(int32_t &maxAngle);
+
    float getPresentAngle();
    int32_t getPresentPosition();
+   int32_t getPresentVelocity();
+   //float getPressentAcceleration();
+
+   bool updateParamters(MotorParameters motorParameters, String &msg);
+   bool updateSensorData(SensorData& sensorData, String &msg);
    
    bool moveToAngle(float angle);
    bool moveToPosition(int32_t position);
@@ -56,42 +91,17 @@ public:
    int32_t readItem(const char *item_name);
 
 private:
-  /** 
-     * Setts the opperation mode. 
-     * @param mode desired opperation mode. 
-     * @returns True if the mode is successfuly changed. 
-     * 
-     * Modes available: 
-     * 1, Velocity Control Mode
-     * 3, Position Control Mode (Dafault)
-     * 4, Extended Position Control Mode. Multi turn mode. !! NOT IN USE IN THE EXOSKELETON PROJECT. 
-     * 16, PWM Control Mode (Voltage Control Mode)
-     * */
   bool setOperationMode(uint8_t mode, const char **log = NULL);
-
-  /**
-     * Convert an angle (0-360) to the analog value readed from and to the motor. 
-     * @param angle The angle to convert. 
-     * @returns The value rotational value used by the motor. 
-     * */
   int32_t convertAngleToValue(const float &angle);
-
-  /**
-     * Convert an Analog value (0-4095) at an Angle (0-360)
-     * 
-     * @param angle_val The analog angle value (0-4095). 
-     * @returns The value rotational value used by the motor. 
-     * */
   float convertValueToAngle(const int32_t &angle_val);
 
-
-
-
-  
+  bool setVelocity(int32_t velocity);
 
   // Constant.
   uint8_t motor_ID;
   float gearRatio;
+  float goalAngle;
+
 };
 
 #endif
