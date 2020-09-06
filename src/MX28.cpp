@@ -227,10 +227,10 @@ bool MX28::updateParamters(MotorParameters motorParameters, String &msg){
           msg += "[Error:] Could not update Velocity_Limit \n";
           success = false;
      }
-     if(!MotorMX28.itemWrite(motor_ID, "Acceleration_Limit", motorParameters.maxAcceleration)){
-          msg += "[Error:] Could not update Acceleration_Limit \n";
-          success = false;
-     }
+     // if(!MotorMX28.itemWrite(motor_ID, "Acceleration_Limit", motorParameters.maxAcceleration)){
+     //      msg += "[Error:] Could not update Acceleration_Limit \n";
+     //      success = false;
+     // }
      if(!MotorMX28.itemWrite(motor_ID, "Velocity_P_Gain", motorParameters.PgainVelocity)){
           msg += "[Error:] Could not update Velocity_P_Gain\n";
           success = false;
